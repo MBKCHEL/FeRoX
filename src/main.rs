@@ -46,17 +46,14 @@ fn print_pixels(){
         if let Some(fb) = response.framebuffers().first() {
             let start_ptr = fb.address() as *mut u32;
 
-            let x = 50;
-            let y = 50;
-
-            let pixel_pos: u32 = (y * (fb.pitch / 4) + x).try_into().unwrap();
             sprintln!("Width: {}, Height: {}, Pitch: {}, bpp: {}", fb.width, fb.height, fb.pitch, fb.bpp);
-
 
             let white_color: u32 = 0x00FFFFFF;
             unsafe {
-                let start_ptr = start_ptr.add(pixel_pos.try_into().unwrap());
-                core::ptr::write_volatile(start_ptr, white_color);
+                for x in 0..fb.width {
+                    let cell = start_ptr.add(x.try_into().unwrap());
+                    core::ptr::write_volatile(cell, white_color);
+                }
             }
         }
     }
