@@ -3,27 +3,44 @@
 
 use core::arch::asm;
 use core::panic::PanicInfo;
-fn serial_write_byte(b: u8) {
-    unsafe {
-        asm!(
-        "out dx, al",
-        in("dx") 0x3F8u16,
-        in("al") b,
-        options(nomem, nostack, preserves_flags),
-        );
+use core::fmt::{Write};
+
+struct Serial;
+
+impl Write for Serial{
+    fn write_str(&mut self, s: &str) -> core::fmt::Result {
+        for b in s.bytes() {
+            unsafe {
+                asm!(
+                "out dx, al",
+                in("dx") 0x3F8u16,
+                in("al") b,
+                options(nomem, nostack, preserves_flags),
+                );
+            }
+        }
+        Ok(())
     }
 }
 
-fn serial_write(s: &str) {
-    for b in s.bytes() {
-        serial_write_byte(b);
-    }
+macro_rules! sprint {
+    ($($arg:tt)*) => { _print(format_args!($($arg)*)) };
+}
+
+macro_rules! sprintln {
+    ($($arg:tt)*) => { _print(format_args!("{}\n", format_args!($($arg)*))) };
+}
+
+fn _print(args: core::fmt::Arguments) {
+    Serial.write_fmt(args).unwrap();
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn _start() -> ! {
-    serial_write("Hello from FeRoX!\n");
+    let my_number = 3232;
 
+    sprintln!("{}", my_number);
+    sprint!("test");
     loop {
         unsafe { asm!("hlt") };
     }
@@ -31,7 +48,7 @@ pub extern "C" fn _start() -> ! {
 
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
-    serial_write("PANIC\n");
+    sprint!("{}", _info);
     loop {
         unsafe { asm!("hlt") };
     }
