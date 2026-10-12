@@ -1,6 +1,5 @@
 #![no_std]
 #![no_main]
-
 use core::arch::asm;
 use core::fmt::Write;
 use core::panic::PanicInfo;
@@ -46,16 +45,6 @@ fn fill_rect(x: u64, y: u64, width: u64, height: u64, color: u32) {
     for dy in 0..height {
         for dx in 0..width {
             put_pixel(x + dx, y + dy, color);
-        }
-    }
-}
-fn print_letters(x: u64, y: u64, color: u32, scale: u64, glyph: [u8; 8]) {
-    let height = scale;
-    for dy in 0..8 {
-        for dx in 0..8 {
-            if (glyph[dy] >> dx) & 1 == 1 {
-                fill_rect(x + dx as u64 * scale, y + dy as u64 * scale, scale, height, color, );
-            }
         }
     }
 }
@@ -108,13 +97,42 @@ fn put_pixel(x: u64, y: u64, color: u32) {
     }
 }
 
-fn print_string_on_screen(c: &str, mut x: u64, y: u64, scale: u64, color: u32) {
-    for c in c.chars() {
-        if let Some(glyph_data) = BASIC_FONTS.get(c) {
-            let glyph: [u8; 8] = glyph_data;
-            print_letters(x, y, color, scale, glyph);
+struct Console {
+    x: u64,
+    y: u64,
+    color: u32,
+    scale: u64,
+}
+impl Write for Console {
+    fn write_str(&mut self, s: &str) -> core::fmt::Result {
+        for c in s.chars() {
+            unsafe {
+                if let Some(ref fb) = FB_GLOBAL {
+                    if c == '\n' || self.x + 8 * self.scale > fb.width {
+                        self.x = 0;
+                        self.y += 10 * self.scale;
+                    } else {
+                        if let Some(glyph_data) = BASIC_FONTS.get(c) {
+                            let glyph: [u8; 8] = glyph_data;
+                            print_letters(self.x, self.y, self.color, self.scale, glyph);
+                        }
+                        self.x += 8 * self.scale;
+                    }
+                }
+            }
         }
-        x += 8 * scale;
+        Ok(())
+    }
+}
+
+fn print_letters(x: u64, y: u64, color: u32, scale: u64, glyph: [u8; 8]) {
+    let height = scale;
+    for dy in 0..8 {
+        for dx in 0..8 {
+            if (glyph[dy] >> dx) & 1 == 1 {
+                fill_rect(x + dx as u64 * scale, y + dy as u64 * scale, scale, height, color, );
+            }
+        }
     }
 }
 
@@ -136,13 +154,9 @@ pub extern "C" fn _start() -> ! {
             }
         }
 
-        let x = 0;
-        let y = 0;
-        let color = 0xFFFFFF;
-        let scale = 2;
-        let c = "Hello, World!";
 
-        print_string_on_screen(c, x, y, scale, color);
+        let mut console = Console { x: 0, y: 0, color: 0xFFFFFF, scale: 2 };
+        write!(console, "FeRoX OS | Vanya age: {} fhsdjkfhsdjkfdsjklfahrhklewrlhkewrlkhwelhkrwhlkrweseseqweljkwqejqwlejklkjewqlkjqewjklqewlkjqewjlkqw", 109).unwrap();
 
         sprintln!("Revision is Ok");
     }
