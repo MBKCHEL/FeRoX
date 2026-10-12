@@ -4,7 +4,7 @@
 use core::arch::asm;
 use core::fmt::Write;
 use core::panic::PanicInfo;
-use font8x8::{BASIC_FONTS, FontUnicode, UnicodeFonts};
+use font8x8::{BASIC_FONTS, UnicodeFonts};
 use limine::{BaseRevision, request::FramebufferRequest};
 
 #[used]
@@ -13,27 +13,6 @@ static BASE_REVISION: BaseRevision = BaseRevision::new();
 struct Serial;
 #[used]
 static FMB_REQUEST: FramebufferRequest = FramebufferRequest::new();
-
-const R: [[u8; 1]; 8] = [
-    [0b11111100],
-    [0b11000110],
-    [0b11000110],
-    [0b11111100],
-    [0b11001100],
-    [0b11000110],
-    [0b11000011],
-    [0b00000000],
-];
-const I: [[u8; 1]; 8] = [
-    [0b00111100],
-    [0b00011000],
-    [0b00011000],
-    [0b00011000],
-    [0b00011000],
-    [0b00011000],
-    [0b00111100],
-    [0b00000000],
-];
 
 impl Write for Serial {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
@@ -70,18 +49,12 @@ fn fill_rect(x: u64, y: u64, width: u64, height: u64, color: u32) {
         }
     }
 }
-fn print_letters(x: u64, y: u64, color: u32, scale: u64, glyph: [[u8; 1]; 8]) {
+fn print_letters(x: u64, y: u64, color: u32, scale: u64, glyph: [u8; 8]) {
     let height = scale;
     for dy in 0..8 {
         for dx in 0..8 {
-            if (glyph[dy][0] >> 7 - dx) & 1 == 1 {
-                fill_rect(
-                    x + dx as u64 * scale,
-                    y + dy as u64 * scale,
-                    scale,
-                    height,
-                    color,
-                );
+            if (glyph[dy] >> dx) & 1 == 1 {
+                fill_rect(x + dx as u64 * scale, y + dy as u64 * scale, scale, height, color, );
             }
         }
     }
@@ -135,6 +108,16 @@ fn put_pixel(x: u64, y: u64, color: u32) {
     }
 }
 
+fn print_string_on_screen(c: &str, mut x: u64, y: u64, scale: u64, color: u32) {
+    for c in c.chars() {
+        if let Some(glyph_data) = BASIC_FONTS.get(c) {
+            let glyph: [u8; 8] = glyph_data;
+            print_letters(x, y, color, scale, glyph);
+        }
+        x += 8 * scale;
+    }
+}
+
 #[unsafe(no_mangle)]
 pub extern "C" fn _start() -> ! {
     if !BASE_REVISION.is_supported() {
@@ -157,11 +140,10 @@ pub extern "C" fn _start() -> ! {
         let y = 0;
         let color = 0xFFFFFF;
         let scale = 2;
-        let glyph = R;
+        let c = "Hello, World!";
 
-        print_letters(x, y, color, scale, glyph);
-        let glyph = I;
-        print_letters(x + 15, y, color, scale, glyph);
+        print_string_on_screen(c, x, y, scale, color);
+
         sprintln!("Revision is Ok");
     }
     loop {
