@@ -49,6 +49,20 @@ fn fill_rect(x: u64, y: u64, width: u64, height: u64, color: u32) {
     }
 }
 
+fn print_letter(x: u64, y: u64, color: u32, scale: u64) {
+    let matrix: [[u8; 1]; 8] = [
+        [0b00011000], [0b00111100], [0b01100110], [0b11000011], [0b11111111], [0b11000011], [0b11000011], [0b00000000]
+    ];
+    let height = scale;
+    for dy in 0..8 {
+        for dx in 0..8 {
+            if (matrix[dy][0] >> 7 -dx) & 1 == 1{
+                fill_rect( x + dx as u64 * scale, y + dy as u64 * scale, scale, height, color);
+            }
+        }
+    }
+}
+
 pub struct Framebuffer {
     pub address: *mut u32,
     pub height: u64,
@@ -119,10 +133,9 @@ pub extern "C" fn _start() -> ! {
 
         let x = 50;
         let y = 600;
-        let height = 100;
-        let width = 100;
         let color = 0xFF0000;
-        fill_rect(x, y, height, width, color);
+        let scale = 2;
+        print_letter(x, y, color, scale);
     }
     loop {
         unsafe { asm!("hlt") };
