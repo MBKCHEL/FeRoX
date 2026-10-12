@@ -2,8 +2,8 @@
 #![no_main]
 
 use core::arch::asm;
+use core::fmt::Write;
 use core::panic::PanicInfo;
-use core::fmt::{Write};
 use limine::{BaseRevision, request::FramebufferRequest};
 
 #[used]
@@ -13,7 +13,7 @@ struct Serial;
 #[used]
 static FMB_REQUEST: FramebufferRequest = FramebufferRequest::new();
 
-impl Write for Serial{
+impl Write for Serial {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
         for b in s.bytes() {
             unsafe {
@@ -41,20 +41,58 @@ fn _print(args: core::fmt::Arguments) {
     let _ = Serial.write_fmt(args);
 }
 
-fn print_pixels(){
+fn fill_rect(x: u64, y: u64, width: u64, height: u64, color: u32) {
+    for dy in 0..height {
+        for dx in 0..width {
+            put_pixel(x + dx, y + dy, color);
+        }
+    }
+}
+
+pub struct Framebuffer {
+    pub address: *mut u32,
+    pub height: u64,
+    pub width: u64,
+    pub pitch: u64,
+    pub bpp: u64,
+}
+
+static mut FB_GLOBAL: Option<Framebuffer> = None;
+
+fn buffer_info() {
     if let Some(response) = FMB_REQUEST.response() {
         if let Some(fb) = response.framebuffers().first() {
-            let start_ptr = fb.address() as *mut u32;
+            let fb_instance = Framebuffer {
+                address: fb.address() as *mut u32,
+                height: fb.height,
+                width: fb.width,
+                pitch: fb.pitch,
+                bpp: fb.bpp as u64,
+            };
 
-            sprintln!("Width: {}, Height: {}, Pitch: {}, bpp: {}", fb.width, fb.height, fb.pitch, fb.bpp);
-
-            let white_color: u32 = 0x00FFFFFF;
             unsafe {
-                for x in 0..fb.width {
-                    let cell = start_ptr.add(x.try_into().unwrap());
-                    core::ptr::write_volatile(cell, white_color);
-                }
+                FB_GLOBAL = Some(fb_instance);
             }
+        }
+    }
+}
+
+fn put_pixel(x: u64, y: u64, color: u32) {
+    unsafe {
+        if let Some(ref fb) = FB_GLOBAL {
+            let start_ptr = fb.address;
+
+            let pixel_pos = y * (fb.pitch / 4) + x;
+
+            if y >= fb.height {
+                return;
+            }
+            if x >= fb.width {
+                return;
+            }
+
+            let start_ptr = start_ptr.add(pixel_pos as usize);
+            core::ptr::write_volatile(start_ptr, color);
         }
     }
 }
@@ -63,10 +101,28 @@ fn print_pixels(){
 pub extern "C" fn _start() -> ! {
     if !BASE_REVISION.is_supported() {
         sprintln!("Unsupported revision");
-    }
-    else {
+    } else {
+        buffer_info();
+        unsafe {
+            if let Some(ref fb) = FB_GLOBAL {
+                sprintln!(
+                    "Width: {}, Height: {}, Pitch: {}, bpp: {}",
+                    fb.width,
+                    fb.height,
+                    fb.pitch,
+                    fb.bpp
+                );
+            }
+        }
+
         sprintln!("Revision is Ok");
-        print_pixels();
+
+        let x = 50;
+        let y = 600;
+        let height = 100;
+        let width = 100;
+        let color = 0xFF0000;
+        fill_rect(x, y, height, width, color);
     }
     loop {
         unsafe { asm!("hlt") };
