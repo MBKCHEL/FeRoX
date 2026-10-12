@@ -4,6 +4,7 @@
 use core::arch::asm;
 use core::fmt::Write;
 use core::panic::PanicInfo;
+use font8x8::{BASIC_FONTS, FontUnicode, UnicodeFonts};
 use limine::{BaseRevision, request::FramebufferRequest};
 
 #[used]
@@ -12,6 +13,27 @@ static BASE_REVISION: BaseRevision = BaseRevision::new();
 struct Serial;
 #[used]
 static FMB_REQUEST: FramebufferRequest = FramebufferRequest::new();
+
+const R: [[u8; 1]; 8] = [
+    [0b11111100],
+    [0b11000110],
+    [0b11000110],
+    [0b11111100],
+    [0b11001100],
+    [0b11000110],
+    [0b11000011],
+    [0b00000000],
+];
+const I: [[u8; 1]; 8] = [
+    [0b00111100],
+    [0b00011000],
+    [0b00011000],
+    [0b00011000],
+    [0b00011000],
+    [0b00011000],
+    [0b00111100],
+    [0b00000000],
+];
 
 impl Write for Serial {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
@@ -48,16 +70,18 @@ fn fill_rect(x: u64, y: u64, width: u64, height: u64, color: u32) {
         }
     }
 }
-
-fn print_letter(x: u64, y: u64, color: u32, scale: u64) {
-    let matrix: [[u8; 1]; 8] = [
-        [0b00011000], [0b00111100], [0b01100110], [0b11000011], [0b11111111], [0b11000011], [0b11000011], [0b00000000]
-    ];
+fn print_letters(x: u64, y: u64, color: u32, scale: u64, glyph: [[u8; 1]; 8]) {
     let height = scale;
     for dy in 0..8 {
         for dx in 0..8 {
-            if (matrix[dy][0] >> 7 -dx) & 1 == 1{
-                fill_rect( x + dx as u64 * scale, y + dy as u64 * scale, scale, height, color);
+            if (glyph[dy][0] >> 7 - dx) & 1 == 1 {
+                fill_rect(
+                    x + dx as u64 * scale,
+                    y + dy as u64 * scale,
+                    scale,
+                    height,
+                    color,
+                );
             }
         }
     }
@@ -129,13 +153,16 @@ pub extern "C" fn _start() -> ! {
             }
         }
 
-        sprintln!("Revision is Ok");
-
-        let x = 50;
-        let y = 600;
-        let color = 0xFF0000;
+        let x = 0;
+        let y = 0;
+        let color = 0xFFFFFF;
         let scale = 2;
-        print_letter(x, y, color, scale);
+        let glyph = R;
+
+        print_letters(x, y, color, scale, glyph);
+        let glyph = I;
+        print_letters(x + 15, y, color, scale, glyph);
+        sprintln!("Revision is Ok");
     }
     loop {
         unsafe { asm!("hlt") };
