@@ -1,10 +1,8 @@
 use core::fmt::Write;
 use spin::Mutex;
-use crate::{graphics};
+use crate::graphics::{FB_GLOBAL};
 use font8x8::{BASIC_FONTS, UnicodeFonts};
-use crate::graphics::Framebuffer;
-
-pub static mut FB_GLOBAL: Option<Framebuffer> = None;
+use crate::graphics;
 
 #[used]
 pub static CONSOLE: Mutex<Console> = Mutex::new(Console {
@@ -25,22 +23,33 @@ impl Write for Console {
         for c in s.chars() {
             unsafe {
                 if let Some(ref fb) = FB_GLOBAL {
+                    let line_height = 10 * self.scale;
+
                     if c == '\n' {
                         self.x = 0;
-                        self.y += 10 * self.scale;
-                    } else {
-                        if self.x + 8 * self.scale > fb.width {
-                            self.x = 0;
-                            self.y += 10 * self.scale;
+                        if self.y + line_height >= fb.height {
+                            graphics::scroll_down(line_height);
+                        } else {
+                            self.y += line_height;
                         }
-
-                        if let Some(glyph_data) = BASIC_FONTS.get(c) {
-                            let glyph: [u8; 8] = glyph_data;
-                            graphics::print_letters(self.x, self.y, self.color, self.scale, glyph);
-                        }
-
-                        self.x += 8 * self.scale;
+                        continue;
                     }
+
+                    if self.x + 8 * self.scale > fb.width {
+                        self.x = 0;
+                        if self.y + line_height >= fb.height {
+                            graphics::scroll_down(line_height);
+                        } else {
+                            self.y += line_height;
+                        }
+                    }
+
+                    if let Some(glyph_data) = BASIC_FONTS.get(c) {
+                        let glyph: [u8; 8] = glyph_data;
+                        graphics::print_letters(self.x, self.y, self.color, self.scale, glyph);
+                    }
+
+                    self.x += 8 * self.scale;
                 }
             }
         }

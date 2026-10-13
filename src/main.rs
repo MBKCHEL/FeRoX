@@ -51,7 +51,7 @@ pub extern "C" fn _start() -> ! {
     } else {
         graphics::buffer_info();
         unsafe {
-            if let Some(ref fb) = console::FB_GLOBAL {
+            if let Some(ref fb) = graphics::FB_GLOBAL {
                 sprintln!(
                     "Width: {}, Height: {}, Pitch: {}, bpp: {}",
                     fb.width,

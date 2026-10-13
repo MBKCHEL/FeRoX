@@ -1,13 +1,14 @@
 use limine::request::FramebufferRequest;
-use crate::console;
+use crate::console::{CONSOLE};
 use core::fmt::Write;
 
+pub static mut FB_GLOBAL: Option<Framebuffer> = None;
 #[used]
 static FMB_REQUEST: FramebufferRequest = FramebufferRequest::new();
 
 
 pub fn _kprint(args: core::fmt::Arguments) {
-    let _ = console::CONSOLE.lock().write_fmt(args);
+    let _ = CONSOLE.lock().write_fmt(args);
 }
 
 #[macro_export]
@@ -43,7 +44,7 @@ pub fn buffer_info() {
             };
 
             unsafe {
-                console::FB_GLOBAL = Some(fb_instance);
+                FB_GLOBAL = Some(fb_instance);
             }
         }
     }
@@ -51,7 +52,7 @@ pub fn buffer_info() {
 
 pub fn put_pixel(x: u64, y: u64, color: u32) {
     unsafe {
-        if let Some(ref fb) = console::FB_GLOBAL {
+        if let Some(ref fb) = FB_GLOBAL {
             let start_ptr = fb.address;
 
             let pixel_pos = y * (fb.pitch / 4) + x;
@@ -82,6 +83,30 @@ pub fn print_letters(x: u64, y: u64, color: u32, scale: u64, glyph: [u8; 8]) {
                     color,
                 );
             }
+        }
+    }
+}
+pub(crate) fn scroll_down(amount_pixels: u64) {
+    unsafe {
+        if let Some(ref fb) = FB_GLOBAL {
+            let bytes_per_line = fb.pitch;
+
+            let byte_offset = amount_pixels * bytes_per_line;
+
+            let total_bytes = fb.height * bytes_per_line;
+
+            let bytes_to_copy = total_bytes - byte_offset;
+
+            let dest_ptr = fb.address as *mut u8;
+
+            let src_ptr = dest_ptr.add(byte_offset as usize);
+
+            core::ptr::copy(src_ptr, dest_ptr, bytes_to_copy as usize);
+
+
+            let clear_y = fb.height - amount_pixels;
+
+            fill_rect(0, clear_y, fb.width, amount_pixels, 0x000000);
         }
     }
 }
