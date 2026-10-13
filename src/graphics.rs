@@ -13,7 +13,7 @@ pub fn _kprint(args: core::fmt::Arguments) {
 
 #[macro_export]
 macro_rules! kprint {
-    ($($arg:tt)*) => { $crate::graphics::_kprint(format_args!("{}\n", format_args!($($arg)*))) };
+    ($($arg:tt)*) => { $crate::graphics::_kprint(format_args!("{}", format_args!($($arg)*))) };
 }
 
 pub struct Framebuffer {
@@ -89,6 +89,11 @@ pub fn print_letters(x: u64, y: u64, color: u32, scale: u64, glyph: [u8; 8]) {
 pub(crate) fn scroll_down(amount_pixels: u64) {
     unsafe {
         if let Some(ref fb) = FB_GLOBAL {
+            if amount_pixels >= fb.height {
+                fill_rect(0, 0, fb.width, fb.height, 0x000000);
+                return;
+            }
+
             let bytes_per_line = fb.pitch;
 
             let byte_offset = amount_pixels * bytes_per_line;

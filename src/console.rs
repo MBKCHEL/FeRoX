@@ -18,30 +18,35 @@ pub struct Console {
     pub color: u32,
     pub scale: u64,
 }
+impl Console {
+    fn new_line(&mut self) {
+        let line_height = 10 * self.scale;
+        self.x = 0;
+
+        unsafe {
+            if let Some(ref fb) = FB_GLOBAL {
+                if self.y + line_height >= fb.height {
+                    graphics::scroll_down(line_height);
+                } else {
+                    self.y += line_height;
+                }
+            }
+        }
+    }
+}
+
 impl Write for Console {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
         for c in s.chars() {
             unsafe {
                 if let Some(ref fb) = FB_GLOBAL {
-                    let line_height = 10 * self.scale;
-
                     if c == '\n' {
-                        self.x = 0;
-                        if self.y + line_height >= fb.height {
-                            graphics::scroll_down(line_height);
-                        } else {
-                            self.y += line_height;
-                        }
+                        self.new_line();
                         continue;
                     }
 
                     if self.x + 8 * self.scale > fb.width {
-                        self.x = 0;
-                        if self.y + line_height >= fb.height {
-                            graphics::scroll_down(line_height);
-                        } else {
-                            self.y += line_height;
-                        }
+                        self.new_line();
                     }
 
                     if let Some(glyph_data) = BASIC_FONTS.get(c) {
