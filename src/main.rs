@@ -5,6 +5,7 @@ use core::fmt::Write;
 use core::panic::PanicInfo;
 use font8x8::{BASIC_FONTS, UnicodeFonts};
 use limine::{BaseRevision, request::FramebufferRequest};
+use spin::Mutex;
 
 #[used]
 #[unsafe(no_mangle)]
@@ -12,6 +13,13 @@ static BASE_REVISION: BaseRevision = BaseRevision::new();
 struct Serial;
 #[used]
 static FMB_REQUEST: FramebufferRequest = FramebufferRequest::new();
+#[used]
+static CONSOLE: Mutex<Console> = Mutex::new(Console {
+    x: 0,
+    y: 0,
+    color: 0xFFFFFF,
+    scale: 2,
+});
 
 impl Write for Serial {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
@@ -39,6 +47,14 @@ macro_rules! sprintln {
 
 fn _print(args: core::fmt::Arguments) {
     let _ = Serial.write_fmt(args);
+}
+
+fn _kprint(args: core::fmt::Arguments) {
+    let _ = CONSOLE.lock().write_fmt(args);
+}
+
+macro_rules! kprint {
+    ($($arg:tt)*) => { _kprint(format_args!("{}\n", format_args!($($arg)*))) };
 }
 
 fn fill_rect(x: u64, y: u64, width: u64, height: u64, color: u32) {
@@ -122,7 +138,7 @@ impl Write for Console {
                             print_letters(self.x, self.y, self.color, self.scale, glyph);
                         }
 
-                        self.x += 10 * self.scale;
+                        self.x += 8 * self.scale;
                     }
                 }
             }
@@ -166,8 +182,7 @@ pub extern "C" fn _start() -> ! {
             }
         }
 
-        let mut console = Console { x: 0, y: 0, color: 0xFFFFFF, scale: 2, };
-        write!(console, "Hello from FeRoX Kernel! | MBKCHEL age: {} 12345678901234567890123456789012345678901234567890", 109).unwrap();
+        kprint!( "Hello from FeRoX Kernel! | MBKCHEL age: {} 12345678901234567890123456789012345678901234567890", 109);
 
         sprintln!("Revision is Ok");
     }
