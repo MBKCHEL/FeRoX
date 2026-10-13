@@ -108,15 +108,21 @@ impl Write for Console {
         for c in s.chars() {
             unsafe {
                 if let Some(ref fb) = FB_GLOBAL {
-                    if c == '\n' || self.x + 8 * self.scale > fb.width {
+                    if c == '\n' {
                         self.x = 0;
                         self.y += 10 * self.scale;
                     } else {
+                        if self.x + 8 * self.scale > fb.width {
+                            self.x = 0;
+                            self.y += 10 * self.scale;
+                        }
+
                         if let Some(glyph_data) = BASIC_FONTS.get(c) {
                             let glyph: [u8; 8] = glyph_data;
                             print_letters(self.x, self.y, self.color, self.scale, glyph);
                         }
-                        self.x += 8 * self.scale;
+
+                        self.x += 10 * self.scale;
                     }
                 }
             }
@@ -130,7 +136,13 @@ fn print_letters(x: u64, y: u64, color: u32, scale: u64, glyph: [u8; 8]) {
     for dy in 0..8 {
         for dx in 0..8 {
             if (glyph[dy] >> dx) & 1 == 1 {
-                fill_rect(x + dx as u64 * scale, y + dy as u64 * scale, scale, height, color, );
+                fill_rect(
+                    x + dx as u64 * scale,
+                    y + dy as u64 * scale,
+                    scale,
+                    height,
+                    color,
+                );
             }
         }
     }
@@ -154,9 +166,8 @@ pub extern "C" fn _start() -> ! {
             }
         }
 
-
-        let mut console = Console { x: 0, y: 0, color: 0xFFFFFF, scale: 2 };
-        write!(console, "FeRoX OS | Vanya age: {} fhsdjkfhsdjkfdsjklfahrhklewrlhkewrlkhwelhkrwhlkrweseseqweljkwqejqwlejklkjewqlkjqewjklqewlkjqewjlkqw", 109).unwrap();
+        let mut console = Console { x: 0, y: 0, color: 0xFFFFFF, scale: 2, };
+        write!(console, "Hello from FeRoX Kernel! | MBKCHEL age: {} 12345678901234567890123456789012345678901234567890", 109).unwrap();
 
         sprintln!("Revision is Ok");
     }
