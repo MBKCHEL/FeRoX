@@ -1,11 +1,4 @@
-use crate::console::CONSOLE;
-
 pub fn scan_code_check(scancode: u8) -> Option<char> {
-    if scancode == 0x0E {
-        CONSOLE.lock().backspace();
-        return None;
-    }
-
     match scancode {
         0x02 => Some('1'),
         0x03 => Some('2'),

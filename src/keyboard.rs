@@ -1,3 +1,4 @@
+use crate::console::CONSOLE;
 use crate::scancode::scan_code_check;
 use x86_64::instructions::port::Port;
 use x86_64::instructions::port::{PortGeneric, ReadWriteAccess};
@@ -12,6 +13,11 @@ pub fn read_keyboard_scancode() -> Option<char> {
         let scancode: u8 = unsafe { data_port.read() };
 
         if scancode & 0x80 != 0 {
+            return None;
+        }
+
+        if scancode == 0x0E {
+            CONSOLE.lock().backspace();
             return None;
         }
 
