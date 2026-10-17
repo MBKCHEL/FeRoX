@@ -1,8 +1,8 @@
-use core::fmt::Write;
-use spin::Mutex;
-use crate::graphics::{FB_GLOBAL};
-use font8x8::{BASIC_FONTS, UnicodeFonts};
 use crate::graphics;
+use crate::graphics::FB_GLOBAL;
+use core::fmt::Write;
+use font8x8::{BASIC_FONTS, UnicodeFonts};
+use spin::Mutex;
 
 #[used]
 pub static CONSOLE: Mutex<Console> = Mutex::new(Console {
@@ -33,6 +33,13 @@ impl Console {
             }
         }
     }
+
+    pub fn backspace(&mut self) {
+        if self.x >= 8 * self.scale {
+            self.x -= 8 * self.scale;
+            graphics::fill_rect(self.x, self.y, 8 * self.scale, 10 * self.scale, 0x000000);
+        }
+    }
 }
 
 impl Write for Console {
@@ -61,3 +68,4 @@ impl Write for Console {
         Ok(())
     }
 }
+
