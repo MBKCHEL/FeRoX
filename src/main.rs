@@ -1,15 +1,16 @@
 #![no_std]
 #![no_main]
 
-mod keyboard;
-mod graphics;
 mod console;
+mod graphics;
+mod keyboard;
+mod scancode;
 
+use crate::keyboard::read_keyboard_scancode;
 use core::arch::asm;
 use core::fmt::Write;
 use core::panic::PanicInfo;
-use limine::{BaseRevision};
-use crate::keyboard::read_keyboard_scancode;
+use limine::BaseRevision;
 
 #[used]
 #[unsafe(no_mangle)]
@@ -62,20 +63,23 @@ pub extern "C" fn _start() -> ! {
             }
         }
 
-        kprint!( "Hello from FeRoX Kernel! | MBKCHEL age: {} 12345678901234567890123456789012345678901234567890", 109);
+        kprint!(
+            "Hello from FeRoX Kernel! | MBKCHEL age: {} 12345678901234567890123456789012345678901234567890",
+            109
+        );
 
         sprintln!("Revision is Ok");
     }
     loop {
-        if let Some(scancode) = read_keyboard_scancode() {
-            kprint!("{:x}", scancode);
+        if let Some(symbol) = read_keyboard_scancode() {
+            kprint!("{}", symbol);
         }
     }
 }
 
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
-    kprint!( "{}", _info);
+    kprint!("{}", _info);
     loop {
         unsafe { asm!("hlt") };
     }
