@@ -1,10 +1,12 @@
 #![no_std]
 #![no_main]
+#![feature(abi_x86_interrupt)]
 
 mod console;
 mod graphics;
 mod keyboard;
 mod scancode;
+mod interrupts;
 
 use crate::keyboard::read_keyboard_scancode;
 use core::arch::asm;

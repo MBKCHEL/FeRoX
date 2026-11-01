@@ -35,9 +35,27 @@ impl Console {
     }
 
     pub fn backspace(&mut self) {
-        if self.x >= 8 * self.scale {
-            self.x -= 8 * self.scale;
-            graphics::fill_rect(self.x, self.y, 8 * self.scale, 10 * self.scale, 0x000000);
+        let char_width = 8 * self.scale;
+        let char_height = 10 * self.scale;
+
+        if self.x >= char_width {
+            self.x -= char_width;
+            graphics::fill_rect(self.x, self.y, char_width, char_height, 0x000000);
+        }
+        else if self.x == 0 && self.y > 0 {
+            self.y -= char_height;
+
+            unsafe {
+                if let Some(ref fb) = FB_GLOBAL {
+                    let cols = fb.width / char_width;
+                    if cols > 0 {
+                        self.x = (cols - 1) * char_width;
+                    } else {
+                        self.x = 0;
+                    }
+                }
+            }
+            graphics::fill_rect(self.x, self.y, char_width, char_height, 0x000000);
         }
     }
 }
@@ -68,4 +86,3 @@ impl Write for Console {
         Ok(())
     }
 }
-
