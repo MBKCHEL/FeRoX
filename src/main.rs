@@ -53,21 +53,14 @@ pub extern "C" fn _start() -> ! {
         sprint!("Unsupported revision");
     } else {
         graphics::buffer_info();
-        unsafe {
-            if let Some(ref fb) = graphics::FB_GLOBAL {
-                sprintln!(
-                    "Width: {}, Height: {}, Pitch: {}, bpp: {}",
-                    fb.width,
-                    fb.height,
-                    fb.pitch,
-                    fb.bpp
-                );
-            }
-        }
+        interrupts::init();
+        x86_64::instructions::interrupts::int3();
+
+        kprint!("It did not crash!");
 
         kprint!(
-            "Hello from FeRoX Kernel! | MBKCHEL age: {} 12345678901234567890123456789012345678901234567890",
-            109
+            "Hello from FeRoX Kernel! | MBKCHEL age: {} ",
+            32
         );
 
         sprintln!("Revision is Ok");
